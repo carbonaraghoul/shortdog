@@ -5,25 +5,213 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body{
+                display: block;
+                margin: 0px;
+                padding: 0px;
                 font-family: Helvetica;
-                margin: 30px;
                 user-select: none;
+                background-color: #5da1ca;
+                color: #2c333a;
             }
+
+            #title {
+                margin: 30px;
+                color: #FFFFFF;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            p {
+                font-size: 0.75em;
+            }
+
             #gameContainer {
-                margin: 0;
                 position: absolute;
-                top: 30%;
+                top: 50%;
                 left: 50%;
-                transform: translate(-60%, -50%);
-                font-size: 16px;
+                transform: translate(-50%, -50%);
+                line-height: 0.5em;
             }
         </style>
     </head>
-    <body>
-        <h1>SHORT DOG</h1>
+    <body onload="draw()">
+        <h1 id="title">SHORT DOG</h1>
         <div id="gameContainer">
+            <canvas id="animationWindow"></canvas>
             <h1>It's a work in progress.</h1>
-            <p><s>Which no one can see.</s></p>
+            <p id="speed"></p>
         </div>
+        <script>
+            //Set canvas and canvas size
+            var canvas = document.getElementById("animationWindow");
+            var ctx = canvas.getContext("2d");
+            var W = 480
+            var H = 240
+            ctx.canvas.width = W;
+            ctx.canvas.height = H;
+
+            var gameLoopNow, gameLoopThen = Date.now(), gameLoopInterval = 1000/30, gameLoopDelta;
+            var spriteChangeCounter = 0;
+
+            var gameSpeed = 1;
+
+            canvas.addEventListener('click', function() { gameSpeed = gameSpeed + 0.1;}, false);
+
+            class sprite {
+                constructor(_spriteList) {
+                    this.image = new Image();
+                    this.srcList = _spriteList;
+                    this.currentFrame = 0;
+                    this.image.src = "images/" + this.srcList[this.currentFrame];
+                    this.x = 0;
+                    this.y = 0;
+                    this.opacity = 1;
+                }
+
+                getX() {
+                    return this.x;
+                }
+
+                getY() {
+                    return this.y;
+                }
+
+                getOpacity() {
+                    return this.opacity;
+                }
+
+                setX(_x) {
+                    this.x = _x;
+                }
+
+                setY(_y) {
+                    this.y = _y;
+                }
+
+                setOpacity(_o) {
+                    this.opacity = _o;
+                }
+
+                changeX(_x) {
+                    this.x = this.x + _x;
+                }
+
+                changeY(_y) {
+                    this.y = this.y + _y;
+                }
+
+                fadeOut() {
+                    if(this.x <= 40 && this.opacity > 0) {
+                        this.opacity = this.opacity - 0.01 - (gameSpeed / 100);
+                    }
+                }
+
+                fadeIn() {
+                    if(this.x > (W/2)) {
+                        if(this.x >= 420 || this.opacity < 1) {
+                            this.opacity = this.opacity + 0.01 + (gameSpeed / 100);
+                        }   
+                    }
+                }
+
+                nextFrame() {
+                    this.currentFrame = this.currentFrame + 1;
+                    if(this.currentFrame > (this.srcList.length - 1)) {
+                        this.currentFrame = 0;
+                    }
+                    this.image.src = "images/" + this.srcList[this.currentFrame];
+                }
+
+                draw() {
+                    ctx.globalAlpha = this.opacity;
+                    ctx.drawImage(this.image, this.x, this.y);
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            var ghoulTruck = new sprite(["truck1.png", "truck2.png"]);
+            ghoulTruck.setX(80);
+            ghoulTruck.setY(30);
+
+            var lampOne = new sprite(["lamp.png"]);
+            lampOne.setX(0);
+            lampOne.setY(42);
+
+            var lampTwo = new sprite(["lamp.png"]);
+            lampTwo.setX(480);
+            lampTwo.setY(42);
+            lampTwo.setOpacity(0);
+
+            var road = new sprite(["road.png"]);
+            road.setX(0);
+            road.setY(42);
+
+            function drawBackground() {
+                ctx.fillStyle = "#5da1ca";
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            function repositonScenery() {
+                lampOne.changeX(-gameSpeed);
+                lampTwo.changeX(-gameSpeed)
+                if(lampOne.getX() <= -480) {
+                    lampOne.setX(480);
+                    lampOne.setOpacity(0);
+                }
+                if(lampTwo.getX() <= -480) {
+                    lampTwo.setX(480);
+                    lampTwo.setOpacity(0);
+                }
+            }
+
+            function changeSprites() {
+                spriteChangeCounter = spriteChangeCounter + 1;
+                if(spriteChangeCounter > (30 - gameSpeed)) {
+                    spriteChangeCounter = 0;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+
+            function update() {
+                repositonScenery();
+                if(changeSprites()) {
+                    ghoulTruck.nextFrame();
+                }
+                if(gameSpeed > 1) {
+                    gameSpeed = gameSpeed - 0.01;
+                }
+                else {
+                    gameSpeed = 1;
+                }
+                lampOne.fadeIn();
+                lampOne.fadeOut();
+                lampTwo.fadeIn();
+                lampTwo.fadeOut();
+            }
+
+            function draw() {
+                requestAnimationFrame(draw);
+                gameLoopNow = Date.now();
+                gameLoopDelta = gameLoopNow - gameLoopThen;
+                if (gameLoopDelta > gameLoopInterval) {
+                    drawBackground();
+                    road.draw();
+                    lampOne.draw();
+                    ghoulTruck.draw();
+                    lampTwo.draw();
+
+                    document.getElementById("speed").innerHTML = "Click to go faster. You're currently going " + Math.floor(gameSpeed + 4) + "<small>mph</small>";
+
+                    update();
+                }
+
+                gameLoopThen = gameLoopNow - (gameLoopDelta % gameLoopInterval);
+            }
+</script>
     </body>
 </html>
